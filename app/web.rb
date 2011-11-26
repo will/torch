@@ -59,7 +59,7 @@ class App < Sinatra::Base
                              plan: params['plan']
 
     status 201
-    {id: u.id, syslog_drain_url: "syslog://torch.heroku.com:514/"}.to_json
+    {id: u.id, syslog_drain_url: ENV['DRAIN_URL']}.to_json
   end
 
   # deprovision
