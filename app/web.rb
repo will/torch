@@ -52,19 +52,14 @@ class App < Sinatra::Base
     protected!
     params = JSON.parse(request.body.read)
 
-    if params['plan'] == 'test'
-      refuse_provision("test plan deprecated, please use fortnightly")
-    end
-
     u = User.create logplex_token: params['logplex_token'],
                      callback_url: params['callback_url'],
                      syslog_token: params['syslog_token'],
                         heroku_id: params['heroku_id'],
                              plan: params['plan']
 
-    u.update_next_rotation_time!
     status 201
-    {id: u.id, config: {'SECURE_KEY' => SecureKey.generate, 'SECURE_KEY_OLD' => SecureKey.generate}}.to_json
+    {id: u.id}.to_json
   end
 
   # deprovision
@@ -97,7 +92,7 @@ __END__
 @@ layout
 <!DOCTYPE>
 <html>
-<head><title>SecureKey</title>
+<head><title>Torch</title>
 <link rel="stylesheet" type="text/css" href="http://kevinburke.bitbucket.org/markdowncss/markdown.css">
 </head>
 <body>
