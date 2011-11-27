@@ -10,9 +10,7 @@ module Scanner
 
     def output
       if @ps == 'router'
-        result = [@queue.to_i, @wait.to_i, @service.to_i]
-        p result
-        MemStore.store @token, result
+        MemStore.store @token, queue: @queue.to_i, wait: @wait.to_i, service: @service.to_i
       end
     end
 
@@ -46,20 +44,14 @@ module Scanner
   end
 end
 
-class Array
-  def mean
-    (self.inject(:+).to_f / self.size).to_i
-  end
-end
-
 module MemStore
   class << self
     def store(key, data)
       @@storage[key] << data
     end
 
-    def calculate
-      Hash[@@storage.map {|k,v| [k, v.transpose.map(&:mean)]}]
+    def get
+      @@storage
     end
 
     def clear
@@ -69,12 +61,45 @@ module MemStore
   @@storage = self.clear
 end
 
+module RoutingStore
+  extend self
+  def store(hash)
+    hash.each do |token, data|
+      begin
+        avgs = calc_avgs(data)
+        vals = avgs.merge token: token, count: data.size
+        insert(vals)
+      rescue => e
+        p e
+      end
+    end
+  end
+
+  private
+
+  def insert(vals)
+    p vals
+  end
+
+  def calc_avgs(data)
+    {
+      queue:   mean( data.map{|h| h[:queue]  } ),
+      wait:    mean( data.map{|h| h[:wait]   } ),
+      service: mean( data.map{|h| h[:service]} )
+    }
+  end
+
+  def mean(ary)
+    (ary.inject(:+).to_f / ary.size).to_i
+  end
+end
+
 EventMachine::run do
   port = (ENV['PORT'] || 4000).to_i
   EventMachine::start_server '0.0.0.0', port, Scanner
   puts 'started server'
-  EventMachine.add_periodic_timer(20) do
-    p MemStore.calculate
+  EventMachine.add_periodic_timer(60) do
+    RoutingStore.store MemStore.get
     MemStore.clear
   end
 end
