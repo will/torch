@@ -10,7 +10,9 @@ module Scanner
 
     def output
       if @ps == 'router'
-        MemStore.store @token, [@queue.to_i, @wait.to_i, @service.to_i]
+        result = [@queue.to_i, @wait.to_i, @service.to_i]
+        p result
+        MemStore.store @token, result
       end
     end
 
