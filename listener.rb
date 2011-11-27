@@ -8,6 +8,14 @@ module Printer
       scan_router(@log) if @ps == 'router'
     end
 
+    def print
+      if @ps == 'router'
+        puts "\n#{@token} queue: #{@queue} wait: #{@wait} service: #{@service}"
+      else
+        print '.'
+      end
+    end
+
     private
     def scan(str)
       ss = StringScanner.new(str)
@@ -28,13 +36,6 @@ module Printer
       @service = result['service']
     end
 
-    def print
-      if @ps == 'router'
-        puts "\n#{@token} queue: #{@queue} wait: #{@wait} service: #{@service}"
-      else
-        print '.'
-      end
-    end
   end
 
   def receive_data(data)
