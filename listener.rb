@@ -1,7 +1,7 @@
 require 'eventmachine'
 require 'strscan'
 
-module Printer
+module Scanner
   class Log
     def initialize(data)
       scan(data)
@@ -10,9 +10,7 @@ module Printer
 
     def output
       if @ps == 'router'
-        puts "\n#{@token} queue: #{@queue} wait: #{@wait} service: #{@service}"
-      else
-        print '.'
+        MemStore.store @token, [@queue.to_i, @wait.to_i, @service.to_i]
       end
     end
 
@@ -35,17 +33,46 @@ module Printer
       @wait = result['wait']
       @service = result['service']
     end
-
   end
 
   def receive_data(data)
-    Log.new(data).output
+    begin
+      Log.new(data).output
+    rescue => e
+      p e.inspect
+    end
   end
+end
 
+class Array
+  def mean
+    (self.inject(:+).to_f / self.size).to_i
+  end
+end
+
+module MemStore
+  class << self
+    def store(key, data)
+      @@storage[key] << data
+    end
+
+    def calculate
+      Hash[@@storage.map {|k,v| [k, v.transpose.map(&:mean)]}]
+    end
+
+    def clear
+      @@storage = Hash.new{|h,k| h[k] = []}
+    end
+  end
+  @@storage = self.clear
 end
 
 EventMachine::run do
   port = (ENV['PORT'] || 4000).to_i
-  EventMachine::start_server '0.0.0.0', port, Printer
+  EventMachine::start_server '0.0.0.0', port, Scanner
   puts 'started server'
+  EventMachine.add_periodic_timer(20) do
+    p MemStore.calculate
+    MemStore.clear
+  end
 end
