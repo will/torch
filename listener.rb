@@ -8,7 +8,7 @@ module Printer
       scan_router(@log) if @ps == 'router'
     end
 
-    def print
+    def output
       if @ps == 'router'
         puts "\n#{@token} queue: #{@queue} wait: #{@wait} service: #{@service}"
       else
@@ -39,7 +39,7 @@ module Printer
   end
 
   def receive_data(data)
-    Log.new(data).print
+    Log.new(data).output
   end
 
 end
