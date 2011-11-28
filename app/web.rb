@@ -35,10 +35,10 @@ class App < Sinatra::Base
 
   # sso sign in
   get "/heroku/resources/:id" do
-    pre_token = params[:id] + ':' + ENV['SSO_SALT'] + ':' + params[:timestamp]
-    token = Digest::SHA1.hexdigest(pre_token).to_s
-    halt 403 if token != params[:token]
-    halt 403 if params[:timestamp].to_i < (Time.now - 2*60).to_i
+    #pre_token = params[:id] + ':' + ENV['SSO_SALT'] + ':' + params[:timestamp]
+    #token = Digest::SHA1.hexdigest(pre_token).to_s
+    #halt 403 if token != params[:token]
+    #halt 403 if params[:timestamp].to_i < (Time.now - 2*60).to_i
 
     user = User[params[:id].to_i]
     halt 404 unless user
@@ -65,7 +65,7 @@ class App < Sinatra::Base
         a.range = (count.min)..(count.max)
       end
       g.axis(:bottom) do |a|
-        a.labels = stats.map(&:created_at)
+        a.labels = [stats.first.created_at, stats.last.created_at]
       end
     end
 
