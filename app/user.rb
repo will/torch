@@ -2,6 +2,7 @@ require 'rest_client'
 require 'json'
 
 class User < Sequel::Model
+  one_to_many :routing_stats
   def get_config
     response = JSON.parse(RestClient.get(heroku_url))
   end
