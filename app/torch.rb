@@ -5,4 +5,5 @@ module Torch
 end
 
 require_relative 'user'
+require_relative 'routing_stat'
 

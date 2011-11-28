@@ -2,6 +2,8 @@ source :rubygems
 gem 'sinatra'
 gem 'rdiscount'
 gem 'json'
+gem 'haml'
+gem 'gchart'
 gem 'thin'
 gem 'sequel'
 gem 'pg'

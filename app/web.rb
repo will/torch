@@ -3,6 +3,7 @@ require 'sinatra/base'
 require 'json'
 require 'rdiscount'
 require 'heroku/nav'
+require 'gchart'
 
 class App < Sinatra::Base
   use Rack::Session::Cookie, secret: ENV['SSO_SALT']
@@ -39,12 +40,38 @@ class App < Sinatra::Base
     halt 403 if token != params[:token]
     halt 403 if params[:timestamp].to_i < (Time.now - 2*60).to_i
 
-    account = true #User.get(params[:id])
-    halt 404 unless account
+    user = User[params[:id].to_i]
+    halt 404 unless user
+
+    stats = user.routing_stats.reverse
+
+    #service = GChart.bar(title: 'service times (ms)', data: stats.map(&:service))
+
+    service = stats.map{|s| s.service.to_i}
+    count   = stats.map{|s| s.count.to_i}
+    @chart =  GChart.line do |g|
+      g.data = [ service, count]
+      g.colors = [:red, :green]
+      g.legend = [ 'service time', 'requests' ]
+      g.width  = 950
+      g.height = 315
+
+      g.axis(:left) do |a|
+        a.text_color = :red
+        a.range = (service.min)..(service.max)
+      end
+      g.axis(:right) do |a|
+        a.text_color = :green
+        a.range = (count.min)..(count.max)
+      end
+      g.axis(:bottom) do |a|
+        a.labels = stats.map(&:created_at)
+      end
+    end
 
     session[:heroku_sso] = params['nav-data']
     response.set_cookie('heroku-nav-data', value: params['nav-data'])
-    haml :index
+    haml :graph, :layout_engine => :erb
   end
 
   # provision
@@ -99,3 +126,7 @@ __END__
 <%= yield %>
 </body>
 </html>
+
+
+@@ graph
+%img{src: @chart.to_url}

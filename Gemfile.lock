@@ -8,6 +8,8 @@ GEM
     em-postgres (0.0.1)
       eventmachine (>= 0.12.9)
     eventmachine (0.12.10)
+    gchart (1.0.0)
+    haml (3.1.2)
     heroku-nav (0.1.24)
       json
       rest-client (>= 1.0)
@@ -47,6 +49,8 @@ PLATFORMS
 
 DEPENDENCIES
   em-postgres
+  gchart
+  haml
   heroku-nav (~> 0.1.24)
   json
   pg
