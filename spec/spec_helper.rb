@@ -1,3 +1,4 @@
+ENV['DATABASE_URL'] = 'postgres:///spark_test'
 require 'rspec'
 require 'webmock/rspec'
 WebMock.disable_net_connect!
