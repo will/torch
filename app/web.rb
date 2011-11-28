@@ -7,8 +7,9 @@ require 'gchart'
 
 class App < Sinatra::Base
   use Rack::Session::Cookie, secret: ENV['SSO_SALT']
-  enable :inline_templates
   set :environment, ENV['RACK_ENV']
+  set :root, './'
+  set :views, settings.root + '/views'
 
   helpers do
     def refuse_provision(reason)
@@ -30,15 +31,17 @@ class App < Sinatra::Base
   end
 
   get "/" do
-    markdown File.read('./README.md'), :layout_engine => :erb
+    markdown File.read('./README.md'), :layout_engine => :haml
   end
 
   # sso sign in
   get "/heroku/resources/:id" do
-    #pre_token = params[:id] + ':' + ENV['SSO_SALT'] + ':' + params[:timestamp]
-    #token = Digest::SHA1.hexdigest(pre_token).to_s
-    #halt 403 if token != params[:token]
-    #halt 403 if params[:timestamp].to_i < (Time.now - 2*60).to_i
+    if ENV['RACK_ENV'].nil?
+      pre_token = params[:id] + ':' + ENV['SSO_SALT'] + ':' + params[:timestamp]
+      token = Digest::SHA1.hexdigest(pre_token).to_s
+      halt 403 if token != params[:token]
+      halt 403 if params[:timestamp].to_i < (Time.now - 2*60).to_i
+    end
 
     user = User[params[:id].to_i]
     halt 404 unless user
@@ -48,21 +51,31 @@ class App < Sinatra::Base
     #service = GChart.bar(title: 'service times (ms)', data: stats.map(&:service))
 
     service = stats.map{|s| s.service.to_i}
+    service_max = service.max
+    service = service.map{|i| i.to_f / service_max }
+
     count   = stats.map{|s| s.count.to_i}
+    count_max = count.max
+    count = count.map{|i| i.to_f / count_max }
+
+    purp = "6B5494"
+    green = "67843B"
     @chart =  GChart.line do |g|
       g.data = [ service, count]
-      g.colors = [:red, :green]
+      g.extras = {chls: "4|5",
+                  chm: "B,BF9BFE,0,0,0"}
+      g.colors = [ purp, green ]
       g.legend = [ 'service time', 'requests' ]
       g.width  = 950
       g.height = 315
 
       g.axis(:left) do |a|
-        a.text_color = :red
-        a.range = (service.min)..(service.max)
+        a.text_color = purp
+        a.range = 0..(service_max)
       end
       g.axis(:right) do |a|
-        a.text_color = :green
-        a.range = (count.min)..(count.max)
+        a.text_color = green
+        a.range = 0..(count_max)
       end
       g.axis(:bottom) do |a|
         a.labels = [stats.first.created_at, stats.last.created_at]
@@ -113,20 +126,3 @@ class App < Sinatra::Base
     end
   end
 end
-
-__END__
-
-@@ layout
-<!DOCTYPE>
-<html>
-<head><title>Torch</title>
-<link rel="stylesheet" type="text/css" href="http://kevinburke.bitbucket.org/markdowncss/markdown.css">
-</head>
-<body>
-<%= yield %>
-</body>
-</html>
-
-
-@@ graph
-%img{src: @chart.to_url}
