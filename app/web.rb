@@ -36,19 +36,22 @@ class App < Sinatra::Base
 
   # sso sign in
   get "/heroku/resources/:id" do
+
+    id, format = params[:id].split(".")
+    format = "html" if format.nil?
+
+    user = User.find(:name => id)
+
     if ENV['RACK_ENV'].nil?
-      pre_token = params[:id] + ':' + ENV['SSO_SALT'] + ':' + params[:timestamp]
+      pre_token = user.heroku_id + ':' + ENV['SSO_SALT'] + ':' + params[:timestamp]
       token = Digest::SHA1.hexdigest(pre_token).to_s
       halt 403 if token != params[:token]
       halt 403 if params[:timestamp].to_i < (Time.now - 2*60).to_i
     end
 
-    user = User[params[:id].to_i]
     halt 404 unless user
 
     stats = user.routing_stats.reverse
-
-    #service = GChart.bar(title: 'service times (ms)', data: stats.map(&:service))
 
     service = stats.map{|s| s.service.to_i}
     service_max = service.max
@@ -58,33 +61,40 @@ class App < Sinatra::Base
     count_max = count.max
     count = count.map{|i| i.to_f / count_max }
 
-    purp = "6B5494"
-    green = "67843B"
-    @chart =  GChart.line do |g|
-      g.data = [ service, count]
-      g.extras = {chls: "4|5",
-                  chm: "B,BF9BFE,0,0,0"}
-      g.colors = [ purp, green ]
-      g.legend = [ 'service time', 'requests' ]
-      g.width  = 950
-      g.height = 315
+    if format == "json"
+      content_type :json
+      headers "Access-Control-Allow-Origin" => "*"
+      data = {:service => service, :count => count}
+      data.to_json
+    else
+      purp = "6B5494"
+      green = "67843B"
+      @chart =  GChart.line do |g|
+        g.data = [ service, count]
+        g.extras = {chls: "4|5",
+                    chm: "B,BF9BFE,0,0,0"}
+        g.colors = [ purp, green ]
+        g.legend = [ 'service time', 'requests' ]
+        g.width  = 950
+        g.height = 315
 
-      g.axis(:left) do |a|
-        a.text_color = purp
-        a.range = 0..(service_max)
+        g.axis(:left) do |a|
+          a.text_color = purp
+          a.range = 0..(service_max)
+        end
+        g.axis(:right) do |a|
+          a.text_color = green
+          a.range = 0..(count_max)
+        end
+        g.axis(:bottom) do |a|
+          a.labels = [stats.first.created_at, stats.last.created_at]
+        end
       end
-      g.axis(:right) do |a|
-        a.text_color = green
-        a.range = 0..(count_max)
-      end
-      g.axis(:bottom) do |a|
-        a.labels = [stats.first.created_at, stats.last.created_at]
-      end
+
+      session[:heroku_sso] = params['nav-data']
+      response.set_cookie('heroku-nav-data', value: params['nav-data'])
+      haml :graph, :layout_engine => :erb
     end
-
-    session[:heroku_sso] = params['nav-data']
-    response.set_cookie('heroku-nav-data', value: params['nav-data'])
-    haml :graph, :layout_engine => :erb
   end
 
   # provision
@@ -92,11 +102,17 @@ class App < Sinatra::Base
     protected!
     params = JSON.parse(request.body.read)
 
+    url = URI.parse(params["callback_url"])
+    url.user = ENV["HEROKU_USERNAME"]
+    url.password = ENV["HEROKU_PASSWORD"]
+    user_info = JSON.parse(RestClient.get(url.to_s, {:accept => :json}))
+
     u = User.create logplex_token: params['logplex_token'],
                      callback_url: params['callback_url'],
                      syslog_token: params['syslog_token'],
                         heroku_id: params['heroku_id'],
-                             plan: params['plan']
+                             plan: params['plan'],
+                             name: user_info['name']
 
     status 201
     {id: u.id, syslog_drain_url: ENV['DRAIN_URL']}.to_json
