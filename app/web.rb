@@ -36,7 +36,6 @@ class App < Sinatra::Base
 
   # sso sign in
   get "/heroku/resources/:id" do
-
     id, format = params[:id].split(".")
     format = "html" if format.nil?
 
@@ -62,10 +61,9 @@ class App < Sinatra::Base
     count = count.map{|i| i.to_f / count_max }
 
     if format == "json"
-      content_type :json
-      headers "Access-Control-Allow-Origin" => "*"
+      content_type "text/javascript"
       data = {:service => service, :count => count}
-      data.to_json
+      "#{params[:callback]}(#{data.to_json})"
     else
       purp = "6B5494"
       green = "67843B"
