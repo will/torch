@@ -40,7 +40,7 @@ class App < Sinatra::Base
     id, format = params[:id].split(".")
     format = "html" if format.nil?
 
-    user = User.find(:name => id)
+    user = User.find(:heroku_id => "app#{id}@heroku.com")
 
     if ENV['RACK_ENV'].nil?
       pre_token = user.id + ':' + ENV['SSO_SALT'] + ':' + params[:timestamp]
@@ -102,18 +102,11 @@ class App < Sinatra::Base
     protected!
     params = JSON.parse(request.body.read)
 
-    url = URI.parse(params["callback_url"])
-    url.user = ENV["HEROKU_USERNAME"]
-    url.password = ENV["HEROKU_PASSWORD"]
-    user_info = JSON.parse(RestClient.get(url.to_s, {:accept => :json}))
-
     u = User.create logplex_token: params['logplex_token'],
                      callback_url: params['callback_url'],
                      syslog_token: params['syslog_token'],
                         heroku_id: params['heroku_id'],
-                             plan: params['plan'],
-                             name: user_info['name']
-
+                             plan: params['plan']
     status 201
     {id: u.id, syslog_drain_url: ENV['DRAIN_URL']}.to_json
   end
