@@ -53,12 +53,7 @@ class App < Sinatra::Base
     stats = user.routing_stats.reverse
 
     service = stats.map{|s| s.service.to_i}
-    service_max = service.max
-    service = service.map{|i| i.to_f / service_max }
-
     count   = stats.map{|s| s.count.to_i}
-    count_max = count.max
-    count = count.map{|i| i.to_f / count_max }
 
     if format == "json"
       content_type "text/javascript"
@@ -67,6 +62,12 @@ class App < Sinatra::Base
     else
       purp = "6B5494"
       green = "67843B"
+
+      service_max = service.max
+      service = service.map{|i| i.to_f / service_max }
+      count_max = count.max
+      count = count.map{|i| i.to_f / count_max }
+
       @chart =  GChart.line do |g|
         g.data = [ service, count]
         g.extras = {chls: "4|5",
