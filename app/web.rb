@@ -43,7 +43,7 @@ class App < Sinatra::Base
     user = User.find(:name => id)
 
     if ENV['RACK_ENV'].nil?
-      pre_token = user.heroku_id + ':' + ENV['SSO_SALT'] + ':' + params[:timestamp]
+      pre_token = user.id + ':' + ENV['SSO_SALT'] + ':' + params[:timestamp]
       token = Digest::SHA1.hexdigest(pre_token).to_s
       halt 403 if token != params[:token]
       halt 403 if params[:timestamp].to_i < (Time.now - 2*60).to_i
