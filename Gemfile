@@ -10,6 +10,7 @@ gem 'pg'
 gem 'em-postgres'
 gem 'rest-client'
 gem "heroku-nav", "~> 0.1.24"
+gem 'rake'
 
 group :test do
   gem 'rspec'
